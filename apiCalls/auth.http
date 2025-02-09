@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:4000
+@urlPath = api/gateway/v1/auth
+
+POST {{baseUrl}}/{{urlPath}}/signup
+Content-Type: application/json
+Accept: application/json
+withCredentials : true
+
+{
+    "username" : "khosro ra" , 
+    "email" : "khosrora153333@gmail.com",
+    "password" : "kh153333" , 
+    "country" : "iran"
+}
+
+###
+POST {{baseUrl}}/{{urlPath}}/signin
+Content-Type: application/json
+Accept: application/json
+withCredentials : true
+
+{
+    "username" : "khosro ra" , 
+    "password" : "kh153333"
+}
+
+###
+GET {{baseUrl}}/{{urlPath}}/search/gig/0/5/forward?query=arghavan
+Content-Type: application/json
+Accept: application/json
+withCredentials : true

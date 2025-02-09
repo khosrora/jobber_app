@@ -1,0 +1,169 @@
+# docker compose up -d redis mongodb mysql postgres rabbitmq elasticsearch kibana gateway notifications
+version: '3.9'
+services:
+  redis:
+    container_name: redis_container
+    image: redis:alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --loglevel warning
+    volumes:
+      - ./docker-volumes/cache:/data
+    networks:
+      - app_net    
+  mongodb:
+    container_name: mongodb_container
+    image: mongo:latest
+    restart: always
+    ports:
+      - '27017:27017'
+    volumes:
+      - ./docker-volumes/data:/data/db
+    networks:
+      - app_net
+  mysql:
+    container_name: mysql_container
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      - MYSQL_USER=jobber
+      - MYSQL_DATABASE=jobber_auth
+      - MYSQL_ROOT_PASSWORD=api
+      - MYSQL_PASSWORD=api
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./docker-volumes/mysql:/var/lib/mysql
+    networks:
+      - app_net
+  postgres:
+    container_name: postgres_container
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=jobber
+      - POSTGRES_PASSWORD=api
+      - POSTGRES_DB=jobber_reviews
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./docker-volumes/postgres:/var/lib/postgresql
+    networks:
+      - app_net
+  rabbitmq:
+    container_name: rabbitmq_container
+    image: rabbitmq:3.13-rc-management-alpine
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      # AMQP protocol port
+      - '5672:5672'
+      # MANAGMENTS UI
+      - '15672:15672'
+    networks:
+      - app_net
+  elasticsearch:
+    container_name: elasticsearch_container
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.4
+    restart: always
+    environment:
+      ES_JAVA_OPTS: -Xmx1g -Xms1g
+      bootstrap.memory_lock: "true"
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.authc.api_key.enabled: "true"
+      xpack.monitoring.collection.enabled: "true"
+      xpack.security.enrollment.enabled: "true"
+      xpack.ml.enabled: "false"
+      cluster.routing.allocation.disk.watermark.low: "90%"
+      cluster.routing.allocation.disk.watermark.high: "95%"
+      cluster.routing.allocation.disk.watermark.flood_stage: "95%"
+      cluster.info.update.interval: "1m" 
+    ports:
+      - 9300:9300
+      - 9200:9200
+    volumes:
+      - ./docker-volumes/elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+      - app_net
+  kibana:
+    container_name: kibana_container
+    image: docker.elastic.co/kibana/kibana:8.10.4
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=["http://elasticsearch_container:9200"]
+    ports:
+      - 5601:5601
+    volumes:
+      - ./kibana.yml/:/usr/share/kibana/config/kibana.yml:ro
+    depends_on: 
+      - elasticsearch
+    networks:
+      - elastic
+      - app_net
+  notifications:
+    container_name: notification_container
+    build: 
+      context: ../server/2-notification-service
+      dockerfile: Dockerfile.dev
+    restart : always
+    ports:
+      - 4001:4001
+    env_file: ../server/2-notification-service/.env
+    environment:
+      - ENABLE_APM=0
+      - NODE_ENV=development
+      - CLINET_URL=http://localhost:3000
+      - RABBITMQ_ENDPOINT=amqp://guest:guest@rabbitmq_container:5672
+      - SENDER_EMAIL=geoffrey55@ethereal.email
+      - SENDER_EMAIL_PASSWORD=qs3TXR6YGvbtbSmmk4
+      - ELASTIC_SEARCH_URL=http://elasticsearch_container:9200
+      - ELASTIC_APM_SERVER_URL=http://localhost:8200
+      - ELASTIC_APM_SECRET_TOKEN=
+    depends_on:
+      - elasticsearch
+    networks:
+      - app_net
+  gateway:
+    container_name: gateway_container
+    build: 
+      context: ../server/1-gateway-service
+      dockerfile: Dockerfile.dev
+    restart : always
+    ports:
+      - 4000:4000
+    env_file: ../server/1-gateway-service/.env
+    environment:
+     - ENABLE_APM=0
+     - GATEWAY_JWT_TOKEN = a414d7b7fed1240d98f73aa828e760a9
+     - JWT_TOKEN = f6699b5eef94f2483432e8a8fb062b01
+     - NODE_ENV = development 
+     - SECRET_KEY_ONE = a5557914b531870fda52945992125521
+     - SECRET_KEY_TWO = 8d5eeefaeed980acd565900d22fdb101
+     - CLIENT_URL = htpp://localhost:3000
+     - AUTH_BASE_URL = http://localhost:4002
+     - USER_BASE_URL = http://localhost:4003
+     - GIG_BASE_URL = http://localhost:4004
+     - MESSAGE_BASE_URL = http://localhost:4005
+     - ORDER_BASE_URL = http://localhost:4006
+     - REVIEW_BASE_URL = http://localhost:4007
+     - REDIS_HOSTS = redis://redis_container:6379
+     - ELASTIC_SEARCH_URL=http://elasticsearch_container:9200/
+     - ELASTIC_APM_SERVER_URL=http://localhost:8200
+     - ELASTIC_APM_SECRET_TOKEN=
+    depends_on:
+      - elasticsearch
+    networks:
+      - app_net
+
+networks:
+  elastic:
+    name: elastic
+  app_net:
+    external: true
+  
