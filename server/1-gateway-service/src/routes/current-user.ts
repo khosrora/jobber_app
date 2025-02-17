@@ -15,6 +15,9 @@ class CurrentUserRoutes {
 
     this.router.get('/auth/refresh-token/:username', Refresh.prototype.token);
 
+    this.router.get('/auth/logged-in-user', authMiddleware.checkAuthentication, CurrentUser.prototype.getLoggedInUsers);
+    this.router.delete('/auth/logged-in-user/:username', authMiddleware.checkAuthentication, CurrentUser.prototype.removeLoggedInUser);
+
     return this.router;
   }
 }

@@ -16,7 +16,7 @@ class Config {
   public MESSAGE_BASE_URL: string | undefined;
   public ORDER_BASE_URL: string | undefined;
   public REVIEW_BASE_URL: string | undefined;
-  public REDIS_HOST: string | undefined;
+  public REDIS_HOSTS: string | undefined;
   public ELASTIC_SEARCH_URL: string | undefined;
 
   constructor() {
@@ -32,7 +32,7 @@ class Config {
     this.MESSAGE_BASE_URL = process.env.MESSAGE_BASE_URL || '';
     this.ORDER_BASE_URL = process.env.ORDER_BASE_URL || '';
     this.REVIEW_BASE_URL = process.env.REVIEW_BASE_URL || '';
-    this.REDIS_HOST = process.env.REDIS_HOST || '';
+    this.REDIS_HOSTS = process.env.REDIS_HOST || '';
     this.ELASTIC_SEARCH_URL = process.env.ELASTIC_SEARCH_URL || '';
   }
 }
